@@ -8,6 +8,7 @@ interface User {
   id: string;
   username: string;
   role: "admin" | "user";
+  department?: string;
 }
 
 interface AuthContextType {
@@ -46,22 +47,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const authenticatedUser = await AuthService.login(username, password);
       
       if (!authenticatedUser) {
-        throw new Error("Invalid credentials");
+        throw new Error("Identifiants invalides");
       }
       
       setUser(authenticatedUser);
       localStorage.setItem("user", JSON.stringify(authenticatedUser));
       
       toast({
-        title: "Login successful",
-        description: `Welcome back, ${username}!`,
+        title: "Connexion réussie",
+        description: `Bienvenue, ${username}!`,
       });
       
+      // Redirect to dashboard
       navigate("/dashboard");
     } catch (error) {
       toast({
-        title: "Login failed",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
+        title: "Échec de la connexion",
+        description: error instanceof Error ? error.message : "Une erreur inconnue s'est produite",
         variant: "destructive",
       });
     } finally {
@@ -75,8 +77,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem("user");
     navigate("/");
     toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
+      title: "Déconnexion",
+      description: "Vous avez été déconnecté avec succès.",
     });
   };
 

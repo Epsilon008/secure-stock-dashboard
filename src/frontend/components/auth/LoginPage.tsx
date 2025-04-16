@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/frontend/context/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState("");
@@ -62,10 +62,18 @@ const LoginPage: React.FC = () => {
                 />
               </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex flex-col space-y-2">
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Connexion en cours..." : "Se connecter"}
               </Button>
+              <div className="text-center mt-2">
+                <p className="text-sm text-muted-foreground">
+                  Pas encore de compte ?{" "}
+                  <Link to="/register" className="text-primary hover:underline">
+                    S'inscrire
+                  </Link>
+                </p>
+              </div>
             </CardFooter>
           </form>
         </Card>
