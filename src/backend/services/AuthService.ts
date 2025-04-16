@@ -1,5 +1,6 @@
 
-import { UserRepository } from "@/data/repositories/UserRepository";
+import { UserService } from "./UserService";
+import { connectToDatabase } from '../config/database';
 
 interface User {
   id: string;
@@ -12,75 +13,44 @@ interface UserWithPassword extends User {
   password: string;
 }
 
-// Mock users for demonstration
-const MOCK_USERS: UserWithPassword[] = [
-  {
-    id: "1",
-    username: "admin",
-    password: "admin123",
-    role: "admin",
-  },
-  {
-    id: "2",
-    username: "user",
-    password: "user123",
-    role: "user",
-    department: "Informatique",
-  },
-];
-
 export class AuthService {
   static async login(username: string, password: string): Promise<User | null> {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const foundUser = MOCK_USERS.find(
-      user => user.username === username && user.password === password
-    );
-    
-    if (!foundUser) {
-      return null;
+    try {
+      // Chercher l'utilisateur dans MongoDB
+      const foundUser = await UserService.findUserByUsername(username);
+      
+      if (!foundUser || foundUser.password !== password) {
+        return null;
+      }
+      
+      // Avec l'inscription activée, nous permettons aux utilisateurs réguliers de se connecter maintenant
+      const { password: _, ...userWithoutPassword } = foundUser;
+      
+      return userWithoutPassword;
+    } catch (error) {
+      console.error("Erreur lors de la connexion:", error);
+      throw error;
     }
-    
-    // With registration enabled, we allow regular users to login now
-    const { password: _, ...userWithoutPassword } = foundUser;
-    
-    // In a real application, we would store the user in a database
-    // and retrieve it from there using the UserRepository
-    // UserRepository.saveUserSession(userWithoutPassword);
-    
-    return userWithoutPassword;
   }
 
   static async register(username: string, password: string, department: string): Promise<User> {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Check if username already exists
-    const existingUser = MOCK_USERS.find(user => user.username === username);
-    if (existingUser) {
-      throw new Error("Ce nom d'utilisateur existe déjà");
+    try {
+      // Créer un nouvel utilisateur dans MongoDB
+      const newUser = await UserService.createUser({
+        username,
+        password,
+        role: "user", // Les nouveaux utilisateurs sont toujours des utilisateurs réguliers
+        department
+      });
+      
+      return newUser;
+    } catch (error) {
+      console.error("Erreur lors de l'inscription:", error);
+      throw error;
     }
-    
-    // Create new user with a generated ID
-    const newUser: UserWithPassword = {
-      id: (MOCK_USERS.length + 1).toString(),
-      username,
-      password,
-      role: "user", // New users are always regular users
-      department,
-    };
-    
-    // Add user to mock database
-    MOCK_USERS.push(newUser);
-    
-    // Return user without password
-    const { password: _, ...userWithoutPassword } = newUser;
-    return userWithoutPassword;
   }
 
   static logout(): void {
-    // In a real application, we would invalidate the user's session
-    // UserRepository.removeUserSession();
+    // Dans une application réelle, nous invaliderions la session de l'utilisateur
   }
 }
