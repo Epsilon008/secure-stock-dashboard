@@ -55,7 +55,7 @@ const RegisterPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      await AuthService.register(username, password, department);
+      const user = await AuthService.register(username, password, department);
       
       toast({
         title: "Inscription réussie",
@@ -64,9 +64,13 @@ const RegisterPage: React.FC = () => {
       
       navigate("/");
     } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Une erreur inconnue s'est produite";
+      
       toast({
         title: "Échec de l'inscription",
-        description: error instanceof Error ? error.message : "Une erreur inconnue s'est produite",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

@@ -1,57 +1,71 @@
 
-/**
- * REMARQUE IMPORTANTE:
- * 
- * Ce fichier simule des opérations de base de données, mais il est configuré
- * pour communiquer avec un vrai backend Node.js/Express.
- * 
- * Le backend Node.js avec MongoDB est maintenant implémenté dans le dossier "backend".
- */
+// Ceci est une configuration simulée pour l'environnement de développement
+// Dans un environnement de production, ce fichier se connecterait à une vraie base de données
 
-// L'URL de base de l'API 
-export const API_URL = 'http://localhost:3001/api';
-
-// Fonctions pour communiquer avec l'API Backend
-export async function apiRequest(endpoint: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('token');
+// Simuler les requêtes API en utilisant le localStorage comme base de données
+export const apiRequest = async (url: string, options?: RequestInit) => {
+  console.log('API Request:', url, options);
   
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    ...(options.headers || {})
-  };
+  // Simuler un délai de réseau
+  await new Promise(resolve => setTimeout(resolve, 500));
   
-  const config = {
-    ...options,
-    headers
-  };
+  // Extraire le chemin de l'URL (par exemple, '/auth/login')
+  const endpoint = url.split('/').slice(1).join('/');
   
-  const response = await fetch(`${API_URL}${endpoint}`, config);
-  
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Request failed with status ${response.status}`);
+  // Traiter les différentes requêtes
+  if (endpoint === 'auth/login') {
+    const { username, password } = JSON.parse(options?.body as string);
+    
+    // Récupérer les utilisateurs du localStorage
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const user = users.find((u: any) => u.username === username);
+    
+    if (!user || user.password !== password) {
+      throw new Error('Identifiants invalides');
+    }
+    
+    // Créer un token simulé
+    const token = `token_${Math.random().toString(36).substring(2)}`;
+    
+    // Retourner la réponse
+    const { password: _, ...userWithoutPassword } = user;
+    return {
+      user: userWithoutPassword,
+      token: token
+    };
   }
   
-  return await response.json();
-}
-
-// Fonctions maintenues pour la compatibilité avec le code existant
-export async function connectToDatabase() {
-  console.log("Connexion au backend Node.js via l'API REST");
-  return {
-    collection: () => ({}) // Cette fonction n'est plus utilisée directement
-  };
-}
-
-export async function closeDatabaseConnection() {
-  console.log("Déconnexion de l'API backend");
-}
-
-export const client = {
-  connect: async () => { console.log("Connexion au client API"); },
-  close: async () => { console.log("Déconnexion du client API"); },
-  db: () => ({
-    collection: () => ({}) // Cette fonction n'est plus utilisée directement
-  })
+  if (endpoint === 'auth/register') {
+    const userData = JSON.parse(options?.body as string);
+    
+    // Récupérer les utilisateurs du localStorage
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    
+    // Vérifier si l'utilisateur existe déjà
+    if (users.some((u: any) => u.username === userData.username)) {
+      throw new Error("Ce nom d'utilisateur existe déjà");
+    }
+    
+    // Créer un nouvel utilisateur
+    const newUser = {
+      id: (users.length + 1).toString(),
+      username: userData.username,
+      password: userData.password, // Note: Dans une vraie app, le mot de passe serait haché
+      role: 'user',
+      department: userData.department,
+      createdAt: new Date()
+    };
+    
+    // Ajouter l'utilisateur à la liste
+    users.push(newUser);
+    localStorage.setItem('users', JSON.stringify(users));
+    
+    // Retourner l'utilisateur sans le mot de passe
+    const { password: _, ...userWithoutPassword } = newUser;
+    return userWithoutPassword;
+  }
+  
+  // Autres endpoints pourraient être ajoutés ici
+  
+  throw new Error(`Endpoint non implémenté: ${endpoint}`);
 };

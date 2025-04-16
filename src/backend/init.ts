@@ -1,28 +1,35 @@
 
-import { connectToDatabase, closeDatabaseConnection } from './config/database';
+// Initialiser les données par défaut dans le localStorage pour l'environnement de développement
 
-/**
- * Cette fonction initialise la connexion au backend Node.js
- */
-export async function initializeDatabase() {
-  try {
-    console.log("Initialisation de la connexion au backend Node.js/Express");
-    await connectToDatabase();
+export const initializeDefaultData = () => {
+  // Initialiser les utilisateurs par défaut s'ils n'existent pas déjà
+  if (!localStorage.getItem('users')) {
+    const defaultUsers = [
+      {
+        id: "1",
+        username: "admin",
+        password: "admin123", // Dans une vraie app, les mots de passe seraient hachés
+        role: "admin",
+        department: "Direction",
+        createdAt: new Date()
+      },
+      {
+        id: "2",
+        username: "user",
+        password: "user123",
+        role: "user",
+        department: "Informatique",
+        createdAt: new Date()
+      }
+    ];
     
-    console.log("Connexion au backend initialisée");
-    return true;
-  } catch (error) {
-    console.error("Erreur lors de l'initialisation de la connexion au backend:", error);
-    throw error;
+    localStorage.setItem('users', JSON.stringify(defaultUsers));
+    console.log("Utilisateurs par défaut initialisés");
   }
-}
+};
 
-// Fonction pour nettoyer la connexion lors de la fermeture de l'application
-export async function cleanupDatabase() {
-  try {
-    await closeDatabaseConnection();
-    console.log("Connexion au backend fermée");
-  } catch (error) {
-    console.error("Erreur lors de la fermeture de la connexion au backend:", error);
-  }
-}
+// Initialiser les données au démarrage de l'application
+export const initApp = () => {
+  console.log("Initialisation de l'application...");
+  initializeDefaultData();
+};
