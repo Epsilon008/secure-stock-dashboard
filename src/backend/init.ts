@@ -1,20 +1,28 @@
 
-import { UserService } from './services/UserService';
+import { connectToDatabase, closeDatabaseConnection } from './config/database';
 
 /**
- * Cette fonction simule l'initialisation d'une base de données
- * Dans une implémentation réelle avec Node.js, cette fonction connecterait
- * à MongoDB et initialiserait les données nécessaires
+ * Cette fonction initialise la connexion au backend Node.js
  */
 export async function initializeDatabase() {
   try {
-    console.log("Simulation d'initialisation de base de données (en attente d'un backend Node.js)");
-    await UserService.initializeDefaultUsers();
+    console.log("Initialisation de la connexion au backend Node.js/Express");
+    await connectToDatabase();
     
-    console.log("Initialisation des données simulées terminée");
+    console.log("Connexion au backend initialisée");
     return true;
   } catch (error) {
-    console.error("Erreur lors de l'initialisation des données simulées:", error);
+    console.error("Erreur lors de l'initialisation de la connexion au backend:", error);
     throw error;
+  }
+}
+
+// Fonction pour nettoyer la connexion lors de la fermeture de l'application
+export async function cleanupDatabase() {
+  try {
+    await closeDatabaseConnection();
+    console.log("Connexion au backend fermée");
+  } catch (error) {
+    console.error("Erreur lors de la fermeture de la connexion au backend:", error);
   }
 }

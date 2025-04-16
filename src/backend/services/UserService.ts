@@ -1,95 +1,64 @@
 
-interface User {
-  id: string;
-  username: string;
-  role: "admin" | "user";
-  department?: string;
-  createdAt?: Date;
-}
-
-interface UserWithPassword extends User {
-  password: string;
-}
-
-// Référence aux mêmes utilisateurs simulés que dans AuthService
-// Dans une implémentation réelle, cela viendrait de la base de données
-const mockUsers: UserWithPassword[] = [
-  {
-    id: "1",
-    username: "admin",
-    password: "admin123",
-    role: "admin",
-    createdAt: new Date()
-  },
-  {
-    id: "2",
-    username: "user",
-    password: "user123",
-    role: "user",
-    department: "Informatique",
-    createdAt: new Date()
-  }
-];
-
-// Stockage local simulé
-let users = [...mockUsers];
+import { apiRequest } from '../config/database';
+import { User } from '@/data/models/User';
 
 export class UserService {
-  static async findUserByUsername(username: string): Promise<UserWithPassword | null> {
+  static async findUserByUsername(username: string): Promise<User | null> {
     try {
-      // Simuler un délai d'API
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const user = users.find(user => user.username === username);
-      
-      if (!user) {
-        return null;
-      }
-      
-      return { ...user };
+      // Cette fonction n'a pas d'équivalent direct dans l'API,
+      // mais nous pouvons l'implémenter comme ceci pour la compatibilité
+      const users = await this.getAllUsers();
+      return users.find(user => user.username === username) || null;
     } catch (error) {
       console.error("Erreur lors de la recherche d'utilisateur:", error);
       throw error;
     }
   }
   
-  static async createUser(userData: Omit<UserWithPassword, 'id'>): Promise<User> {
+  static async createUser(userData: any): Promise<User> {
     try {
-      // Simuler un délai d'API
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Vérifier si l'utilisateur existe déjà
-      const existingUser = users.find(user => user.username === userData.username);
-      if (existingUser) {
-        throw new Error("Ce nom d'utilisateur existe déjà");
-      }
-      
-      // Créer un nouvel ID
-      const id = String(users.length + 1);
-      
-      // Créer un nouvel utilisateur
-      const newUser: UserWithPassword = {
-        id,
-        ...userData,
-        createdAt: new Date()
-      };
-      
-      // Ajouter l'utilisateur à notre liste simulée
-      users.push(newUser);
-      
-      // Retourner l'utilisateur sans le mot de passe
-      const { password: _, ...userWithoutPassword } = newUser;
-      
-      return userWithoutPassword;
+      return await apiRequest('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(userData)
+      });
     } catch (error) {
       console.error("Erreur lors de la création d'utilisateur:", error);
       throw error;
     }
   }
   
+  static async getUserProfile(): Promise<User> {
+    try {
+      return await apiRequest('/users/profile');
+    } catch (error) {
+      console.error("Erreur lors de la récupération du profil:", error);
+      throw error;
+    }
+  }
+  
+  static async updateUserProfile(userData: Partial<User>): Promise<User> {
+    try {
+      return await apiRequest('/users/profile', {
+        method: 'PUT',
+        body: JSON.stringify(userData)
+      });
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du profil:", error);
+      throw error;
+    }
+  }
+  
+  static async getAllUsers(): Promise<User[]> {
+    try {
+      return await apiRequest('/users');
+    } catch (error) {
+      console.error("Erreur lors de la récupération des utilisateurs:", error);
+      throw error;
+    }
+  }
+  
   static async initializeDefaultUsers() {
-    console.log("Initialisation des utilisateurs par défaut (simulée)");
-    // Les utilisateurs par défaut sont déjà dans notre tableau mockUsers
+    console.log("Les utilisateurs par défaut sont initialisés côté backend");
     return true;
   }
 }
