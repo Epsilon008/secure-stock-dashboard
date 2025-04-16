@@ -4,6 +4,7 @@ interface User {
   username: string;
   role: "admin" | "user";
   department?: string;
+  createdAt?: Date;
 }
 
 interface UserWithPassword extends User {
@@ -18,6 +19,7 @@ const mockUsers: UserWithPassword[] = [
     username: "admin",
     password: "admin123",
     role: "admin",
+    createdAt: new Date()
   },
   {
     id: "2",
@@ -25,6 +27,7 @@ const mockUsers: UserWithPassword[] = [
     password: "user123",
     role: "user",
     department: "Informatique",
+    createdAt: new Date()
   }
 ];
 
