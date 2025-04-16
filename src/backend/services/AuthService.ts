@@ -1,7 +1,4 @@
 
-import { UserService } from "./UserService";
-import { connectToDatabase } from '../config/database';
-
 interface User {
   id: string;
   username: string;
@@ -13,17 +10,42 @@ interface UserWithPassword extends User {
   password: string;
 }
 
+// Utilisateurs simulés pour la démonstration
+const mockUsers: UserWithPassword[] = [
+  {
+    id: "1",
+    username: "admin",
+    password: "admin123",
+    role: "admin",
+  },
+  {
+    id: "2",
+    username: "user",
+    password: "user123",
+    role: "user",
+    department: "Informatique",
+  }
+];
+
+// Stockage local simulé
+let users = [...mockUsers];
+
 export class AuthService {
   static async login(username: string, password: string): Promise<User | null> {
     try {
-      // Chercher l'utilisateur dans MongoDB
-      const foundUser = await UserService.findUserByUsername(username);
+      // Simuler un délai d'API
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      if (!foundUser || foundUser.password !== password) {
+      // Rechercher l'utilisateur
+      const foundUser = users.find(user => 
+        user.username === username && user.password === password
+      );
+      
+      if (!foundUser) {
         return null;
       }
       
-      // Avec l'inscription activée, nous permettons aux utilisateurs réguliers de se connecter maintenant
+      // Retourner l'utilisateur sans le mot de passe
       const { password: _, ...userWithoutPassword } = foundUser;
       
       return userWithoutPassword;
@@ -35,15 +57,34 @@ export class AuthService {
 
   static async register(username: string, password: string, department: string): Promise<User> {
     try {
-      // Créer un nouvel utilisateur dans MongoDB
-      const newUser = await UserService.createUser({
+      // Simuler un délai d'API
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Vérifier si l'utilisateur existe déjà
+      const existingUser = users.find(user => user.username === username);
+      if (existingUser) {
+        throw new Error("Ce nom d'utilisateur existe déjà");
+      }
+      
+      // Créer un nouvel ID
+      const id = String(users.length + 1);
+      
+      // Créer un nouvel utilisateur
+      const newUser: UserWithPassword = {
+        id,
         username,
         password,
-        role: "user", // Les nouveaux utilisateurs sont toujours des utilisateurs réguliers
+        role: "user",
         department
-      });
+      };
       
-      return newUser;
+      // Ajouter l'utilisateur à notre liste simulée
+      users.push(newUser);
+      
+      // Retourner l'utilisateur sans le mot de passe
+      const { password: _, ...userWithoutPassword } = newUser;
+      
+      return userWithoutPassword;
     } catch (error) {
       console.error("Erreur lors de l'inscription:", error);
       throw error;

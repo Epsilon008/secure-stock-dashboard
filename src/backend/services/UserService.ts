@@ -1,7 +1,4 @@
 
-import { connectToDatabase } from '../config/database';
-import { ObjectId } from 'mongodb';
-
 interface User {
   id: string;
   username: string;
@@ -13,24 +10,40 @@ interface UserWithPassword extends User {
   password: string;
 }
 
+// Référence aux mêmes utilisateurs simulés que dans AuthService
+// Dans une implémentation réelle, cela viendrait de la base de données
+const mockUsers: UserWithPassword[] = [
+  {
+    id: "1",
+    username: "admin",
+    password: "admin123",
+    role: "admin",
+  },
+  {
+    id: "2",
+    username: "user",
+    password: "user123",
+    role: "user",
+    department: "Informatique",
+  }
+];
+
+// Stockage local simulé
+let users = [...mockUsers];
+
 export class UserService {
   static async findUserByUsername(username: string): Promise<UserWithPassword | null> {
     try {
-      const db = await connectToDatabase();
-      const collection = db.collection('users');
-      const user = await collection.findOne({ username });
+      // Simuler un délai d'API
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const user = users.find(user => user.username === username);
       
       if (!user) {
         return null;
       }
       
-      return {
-        id: user._id.toString(),
-        username: user.username,
-        password: user.password,
-        role: user.role,
-        department: user.department,
-      };
+      return { ...user };
     } catch (error) {
       console.error("Erreur lors de la recherche d'utilisateur:", error);
       throw error;
@@ -39,31 +52,32 @@ export class UserService {
   
   static async createUser(userData: Omit<UserWithPassword, 'id'>): Promise<User> {
     try {
-      const db = await connectToDatabase();
-      const collection = db.collection('users');
+      // Simuler un délai d'API
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       // Vérifier si l'utilisateur existe déjà
-      const existingUser = await collection.findOne({ username: userData.username });
+      const existingUser = users.find(user => user.username === userData.username);
       if (existingUser) {
         throw new Error("Ce nom d'utilisateur existe déjà");
       }
       
-      // Insérer le nouvel utilisateur
-      const result = await collection.insertOne({
-        username: userData.username,
-        password: userData.password, // Dans une application réelle, ce mot de passe devrait être hashé
-        role: userData.role,
-        department: userData.department,
+      // Créer un nouvel ID
+      const id = String(users.length + 1);
+      
+      // Créer un nouvel utilisateur
+      const newUser: UserWithPassword = {
+        id,
+        ...userData,
         createdAt: new Date()
-      });
+      };
+      
+      // Ajouter l'utilisateur à notre liste simulée
+      users.push(newUser);
       
       // Retourner l'utilisateur sans le mot de passe
-      return {
-        id: result.insertedId.toString(),
-        username: userData.username,
-        role: userData.role,
-        department: userData.department
-      };
+      const { password: _, ...userWithoutPassword } = newUser;
+      
+      return userWithoutPassword;
     } catch (error) {
       console.error("Erreur lors de la création d'utilisateur:", error);
       throw error;
@@ -71,33 +85,8 @@ export class UserService {
   }
   
   static async initializeDefaultUsers() {
-    try {
-      const db = await connectToDatabase();
-      const collection = db.collection('users');
-      
-      // Vérifier si la collection est vide
-      const count = await collection.countDocuments();
-      if (count === 0) {
-        // Insérer les utilisateurs par défaut
-        await collection.insertMany([
-          {
-            username: "admin",
-            password: "admin123", // Dans une application réelle, ce mot de passe devrait être hashé
-            role: "admin",
-            createdAt: new Date()
-          },
-          {
-            username: "user",
-            password: "user123",
-            role: "user",
-            department: "Informatique",
-            createdAt: new Date()
-          }
-        ]);
-        console.log("Utilisateurs par défaut créés");
-      }
-    } catch (error) {
-      console.error("Erreur lors de l'initialisation des utilisateurs:", error);
-    }
+    console.log("Initialisation des utilisateurs par défaut (simulée)");
+    // Les utilisateurs par défaut sont déjà dans notre tableau mockUsers
+    return true;
   }
 }
