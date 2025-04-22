@@ -1,6 +1,6 @@
 
 import { apiRequest } from '../config/database';
-import { User } from '@/data/models/User';
+import { User, RegisterUserData } from '@/data/models/User';
 
 // Interface pour les réponses d'authentification
 interface AuthResponse {
@@ -34,19 +34,19 @@ export class AuthService {
     }
   }
 
-  static async register(username: string, password: string, department: string): Promise<User> {
+  static async register(userData: RegisterUserData): Promise<User> {
     try {
-      const userData = await apiRequest('/auth/register', {
+      const newUser = await apiRequest('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ username, password, department })
+        body: JSON.stringify(userData)
       });
       
       // Assurer que le rôle est correctement typé
-      if (userData && typeof userData.role === 'string') {
-        userData.role = userData.role === 'admin' ? 'admin' : 'user';
+      if (newUser && typeof newUser.role === 'string') {
+        newUser.role = newUser.role === 'admin' ? 'admin' : 'user';
       }
       
-      return userData as User;
+      return newUser as User;
     } catch (error) {
       console.error("Erreur lors de l'inscription:", error);
       throw error;
