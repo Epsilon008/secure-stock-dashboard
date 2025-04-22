@@ -8,7 +8,8 @@ export class UserService {
       // Cette fonction n'a pas d'équivalent direct dans l'API,
       // mais nous pouvons l'implémenter comme ceci pour la compatibilité
       const users = await this.getAllUsers();
-      return users.find(user => user.username === username) || null;
+      const foundUser = users.find(user => user.username === username);
+      return foundUser || null;
     } catch (error) {
       console.error("Erreur lors de la recherche d'utilisateur:", error);
       throw error;
@@ -87,10 +88,5 @@ export class UserService {
       console.error("Erreur lors de la récupération des utilisateurs:", error);
       throw error;
     }
-  }
-  
-  static async initializeDefaultUsers() {
-    console.log("Les utilisateurs par défaut sont initialisés côté backend");
-    return true;
   }
 }

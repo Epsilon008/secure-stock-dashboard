@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate, Link, Navigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
@@ -64,9 +65,18 @@ const RegisterPage: React.FC = () => {
       
       navigate("/");
     } catch (error) {
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : "Une erreur inconnue s'est produite";
+      let errorMessage = "Une erreur inconnue s'est produite";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error instanceof Response) {
+        try {
+          const data = await error.json();
+          errorMessage = data.message || errorMessage;
+        } catch (_) {
+          errorMessage = `Erreur ${error.status}: ${error.statusText}`;
+        }
+      }
       
       toast({
         title: "Échec de l'inscription",

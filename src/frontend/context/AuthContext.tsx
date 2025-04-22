@@ -30,9 +30,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = AuthService.getCurrentUser();
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        setUser(storedUser);
       }
       setIsLoading(false);
     };
@@ -51,7 +51,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       setUser(authenticatedUser);
-      localStorage.setItem("user", JSON.stringify(authenticatedUser));
       
       toast({
         title: "Connexion réussie",
@@ -74,7 +73,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     AuthService.logout();
     setUser(null);
-    localStorage.removeItem("user");
     navigate("/");
     toast({
       title: "Déconnexion",

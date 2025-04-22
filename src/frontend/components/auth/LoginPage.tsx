@@ -80,6 +80,7 @@ const LoginPage: React.FC = () => {
         
         <div className="mt-4 text-center text-sm text-muted-foreground">
           <p>Utilisez "admin" / "admin123" pour vous connecter en tant qu'administrateur</p>
+          <p className="mt-1">ou "user" / "user123" pour un compte standard</p>
         </div>
       </div>
     </div>

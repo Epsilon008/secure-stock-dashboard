@@ -32,7 +32,10 @@ async function updateUserProfile(req, res) {
       department
     });
     
-    res.json(updatedUser);
+    // Retirer le mot de passe de la réponse
+    const { password: _, ...userWithoutPassword } = updatedUser;
+    
+    res.json(userWithoutPassword);
   } catch (error) {
     console.error('Erreur lors de la mise à jour du profil:', error);
     res.status(500).json({ message: 'Erreur lors de la mise à jour du profil', error: error.message });
@@ -41,16 +44,8 @@ async function updateUserProfile(req, res) {
 
 async function getAllUsers(req, res) {
   try {
-    const db = await require('../config/db').getDB();
-    const users = await db.collection('users').find({}).toArray();
-    
-    // Retirer les mots de passe
-    const usersWithoutPasswords = users.map(user => {
-      const { password, ...userWithoutPassword } = user;
-      return userWithoutPassword;
-    });
-    
-    res.json(usersWithoutPasswords);
+    const users = await UserModel.getAllUsers();
+    res.json(users);
   } catch (error) {
     console.error('Erreur lors de la récupération des utilisateurs:', error);
     res.status(500).json({ message: 'Erreur lors de la récupération des utilisateurs', error: error.message });

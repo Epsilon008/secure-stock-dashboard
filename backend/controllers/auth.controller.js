@@ -3,6 +3,9 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const UserModel = require('../models/user.model');
 
+// Clé secrète pour JWT - à changer en production
+const JWT_SECRET = process.env.JWT_SECRET || 'votre_cle_secrete_jwt'; 
+
 async function login(req, res) {
   try {
     const { username, password } = req.body;
@@ -28,7 +31,7 @@ async function login(req, res) {
     // Créer un token JWT
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
-      process.env.JWT_SECRET,
+      JWT_SECRET,
       { expiresIn: '24h' }
     );
     
@@ -56,7 +59,7 @@ async function register(req, res) {
     // Créer l'utilisateur
     const newUser = await UserModel.createUser({
       username,
-      password,
+      password, 
       department,
       role: 'user'
     });

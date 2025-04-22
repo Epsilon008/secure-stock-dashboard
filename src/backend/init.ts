@@ -1,35 +1,16 @@
 
 // Initialiser les données par défaut dans le localStorage pour l'environnement de développement
+// Cette fonction n'est utile que pour le développement, elle sera remplacée par MongoDB en production
 
 export const initializeDefaultData = () => {
-  // Initialiser les utilisateurs par défaut s'ils n'existent pas déjà
-  if (!localStorage.getItem('users')) {
-    const defaultUsers = [
-      {
-        id: "1",
-        username: "admin",
-        password: "admin123", // Dans une vraie app, les mots de passe seraient hachés
-        role: "admin",
-        department: "Direction",
-        createdAt: new Date()
-      },
-      {
-        id: "2",
-        username: "user",
-        password: "user123",
-        role: "user",
-        department: "Informatique",
-        createdAt: new Date()
-      }
-    ];
-    
-    localStorage.setItem('users', JSON.stringify(defaultUsers));
-    console.log("Utilisateurs par défaut initialisés");
-  }
+  // Cette fonction n'est plus nécessaire car nous utilisons un vrai backend
+  console.log("Utilisation du backend pour l'initialisation des données");
 };
 
 // Initialiser les données au démarrage de l'application
 export const initApp = () => {
   console.log("Initialisation de l'application...");
+  // En développement avec backend simulé, c'est utile
+  // En production avec un vrai backend MongoDB, cette fonction ne fait rien
   initializeDefaultData();
 };

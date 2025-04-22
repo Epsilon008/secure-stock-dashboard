@@ -24,6 +24,9 @@ export class AuthService {
         data.user.role = data.user.role === 'admin' ? 'admin' : 'user';
       }
       
+      // Stocker l'utilisateur dans localStorage pour maintenir la session
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
       return data.user;
     } catch (error) {
       console.error("Erreur lors de la connexion:", error);
@@ -52,5 +55,23 @@ export class AuthService {
 
   static logout(): void {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  }
+
+  static getCurrentUser(): User | null {
+    const userString = localStorage.getItem('user');
+    if (!userString) return null;
+    
+    try {
+      const user = JSON.parse(userString) as User;
+      // Assurer que le rôle est correctement typé
+      if (user && typeof user.role === 'string') {
+        user.role = user.role === 'admin' ? 'admin' : 'user';
+      }
+      return user;
+    } catch (error) {
+      console.error("Erreur lors de la récupération de l'utilisateur:", error);
+      return null;
+    }
   }
 }

@@ -1,73 +1,94 @@
-# Welcome to your Lovable project
 
-## Project info
+# Application de Gestion Opérationnelle
 
-**URL**: https://lovable.dev/projects/fc8846a5-67da-4317-a4cd-4824109b4f3b
+Cette application est une solution de gestion opérationnelle avec authentification et gestion des utilisateurs.
 
-## How can I edit this code?
+## Fonctionnalités
 
-There are several ways of editing your application.
+- Authentification (connexion/inscription)
+- Gestion des utilisateurs
+- Tableau de bord
+- Gestion des employés
+- Gestion des stocks
+- Paramètres
 
-**Use Lovable**
+## Structure du projet
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/fc8846a5-67da-4317-a4cd-4824109b4f3b) and start prompting.
+- `src/` - Code source frontend (React, TypeScript)
+- `backend/` - Code source backend (Node.js, Express)
 
-Changes made via Lovable will be committed automatically to this repo.
+## Installation
 
-**Use your preferred IDE**
+1. Cloner le dépôt
+2. Installer les dépendances
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+```bash
+# Installation frontend
+npm install
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+# Installation backend
+cd backend
+npm install
+```
 
-Follow these steps:
+## Configuration
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. Créer un fichier `.env` à la racine du projet backend avec le contenu suivant:
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+```
+PORT=3001
+JWT_SECRET=votre_cle_secrete_jwt_a_changer_en_production
+MONGODB_URI=mongodb://localhost:27017/gestion-app
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+2. Créer un fichier `.env` à la racine du projet frontend avec:
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```
+VITE_API_URL=http://localhost:3001/api
+```
+
+## Démarrage en développement
+
+1. Démarrer le backend:
+
+```bash
+cd backend
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+2. Démarrer le frontend:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run dev
+```
 
-**Use GitHub Codespaces**
+## Connexion à MongoDB en production
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Pour connecter l'application à MongoDB en production:
 
-## What technologies are used for this project?
+1. Obtenez une URL de connexion MongoDB (Atlas ou serveur MongoDB hébergé)
+2. Décommentez la partie de connexion MongoDB dans `backend/config/db.js`
+3. Remplacez la valeur de `MONGODB_URI` dans le fichier `.env` du backend
 
-This project is built with:
+## Comptes par défaut
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- Admin: `admin / admin123`
+- Utilisateur: `user / user123`
 
-## How can I deploy this project?
+## Déploiement en production
 
-Simply open [Lovable](https://lovable.dev/projects/fc8846a5-67da-4317-a4cd-4824109b4f3b) and click on Share -> Publish.
+Pour le déploiement en production:
 
-## Can I connect a custom domain to my Lovable project?
+1. Construire le frontend: `npm run build`
+2. Configurer les variables d'environnement sur votre serveur
+3. Démarrer le backend: `npm start` dans le dossier backend
+4. Servir les fichiers statiques du frontend avec un serveur web (Nginx, Apache, etc.)
 
-Yes, you can!
+## Sécurité
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Pour une utilisation en production:
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+1. Générez une clé JWT forte et unique
+2. Utilisez HTTPS
+3. Mettez en place des mesures de sécurité supplémentaires (rate limiting, etc.)
+4. Utilisez un service MongoDB sécurisé avec authentification
