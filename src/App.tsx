@@ -29,8 +29,8 @@ const App = () => (
             <Route path="/" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             
-            {/* Protected Routes */}
-            <Route element={<ProtectedRoute requireAdmin={true} />}>
+            {/* Protected Routes - Modification: removed requireAdmin to allow all authenticated users */}
+            <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/employees" element={<Employees />} />

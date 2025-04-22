@@ -17,10 +17,17 @@ export class UserService {
   
   static async createUser(userData: any): Promise<User> {
     try {
-      return await apiRequest('/auth/register', {
+      const response = await apiRequest('/auth/register', {
         method: 'POST',
         body: JSON.stringify(userData)
       });
+      
+      // Assurer que le rôle est soit "admin" soit "user"
+      if (typeof response === 'object' && 'role' in response) {
+        response.role = response.role === 'admin' ? 'admin' : 'user';
+      }
+      
+      return response as User;
     } catch (error) {
       console.error("Erreur lors de la création d'utilisateur:", error);
       throw error;
@@ -29,7 +36,14 @@ export class UserService {
   
   static async getUserProfile(): Promise<User> {
     try {
-      return await apiRequest('/users/profile');
+      const response = await apiRequest('/users/profile');
+      
+      // Assurer que le rôle est soit "admin" soit "user"
+      if (typeof response === 'object' && 'role' in response) {
+        response.role = response.role === 'admin' ? 'admin' : 'user';
+      }
+      
+      return response as User;
     } catch (error) {
       console.error("Erreur lors de la récupération du profil:", error);
       throw error;
@@ -38,10 +52,17 @@ export class UserService {
   
   static async updateUserProfile(userData: Partial<User>): Promise<User> {
     try {
-      return await apiRequest('/users/profile', {
+      const response = await apiRequest('/users/profile', {
         method: 'PUT',
         body: JSON.stringify(userData)
       });
+      
+      // Assurer que le rôle est soit "admin" soit "user"
+      if (typeof response === 'object' && 'role' in response) {
+        response.role = response.role === 'admin' ? 'admin' : 'user';
+      }
+      
+      return response as User;
     } catch (error) {
       console.error("Erreur lors de la mise à jour du profil:", error);
       throw error;
@@ -50,7 +71,18 @@ export class UserService {
   
   static async getAllUsers(): Promise<User[]> {
     try {
-      return await apiRequest('/users');
+      const response = await apiRequest('/users');
+      
+      // Assurer que la réponse est un tableau d'utilisateurs
+      if (Array.isArray(response)) {
+        // Assurer que chaque utilisateur a un rôle valide
+        return response.map(user => ({
+          ...user,
+          role: user.role === 'admin' ? 'admin' : 'user'
+        })) as User[];
+      }
+      
+      return [] as User[];
     } catch (error) {
       console.error("Erreur lors de la récupération des utilisateurs:", error);
       throw error;

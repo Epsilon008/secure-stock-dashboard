@@ -19,6 +19,11 @@ export class AuthService {
       // Stocker le token d'authentification
       localStorage.setItem('token', data.token);
       
+      // Assurer que le rôle est correctement typé
+      if (data.user && typeof data.user.role === 'string') {
+        data.user.role = data.user.role === 'admin' ? 'admin' : 'user';
+      }
+      
       return data.user;
     } catch (error) {
       console.error("Erreur lors de la connexion:", error);
@@ -28,12 +33,17 @@ export class AuthService {
 
   static async register(username: string, password: string, department: string): Promise<User> {
     try {
-      const data = await apiRequest('/auth/register', {
+      const userData = await apiRequest('/auth/register', {
         method: 'POST',
         body: JSON.stringify({ username, password, department })
-      }) as User;
+      });
       
-      return data;
+      // Assurer que le rôle est correctement typé
+      if (userData && typeof userData.role === 'string') {
+        userData.role = userData.role === 'admin' ? 'admin' : 'user';
+      }
+      
+      return userData as User;
     } catch (error) {
       console.error("Erreur lors de l'inscription:", error);
       throw error;
