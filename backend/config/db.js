@@ -28,6 +28,7 @@ async function connectDB() {
     
     // Simulation de connexion pour développement
     console.log('Utilisation de la simulation de base de données');
+    db = inMemoryDB; // Ensure db is set to inMemoryDB
     return { client: null, db: inMemoryDB };
   } catch (error) {
     console.error('Erreur de connexion à MongoDB:', error);
@@ -37,7 +38,8 @@ async function connectDB() {
 
 async function getDB() {
   if (!db) {
-    await connectDB();
+    const result = await connectDB();
+    db = result.db;
   }
   return db;
 }

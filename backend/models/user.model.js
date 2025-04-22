@@ -10,7 +10,11 @@ if (!inMemoryDB.users || inMemoryDB.users.length === 0) {
   
   // Utilisateurs par défaut à ajouter en mode simulation
   (async () => {
-    await initializeDefaultUsers();
+    try {
+      await initializeDefaultUsers();
+    } catch (error) {
+      console.error("Error initializing default users:", error);
+    }
   })();
 }
 
@@ -24,6 +28,7 @@ async function findUserByUsername(username) {
     
     // Version simulation
     const db = await getDB();
+    if (!db) return null;
     return db.users.find(user => user.username === username);
   } catch (error) {
     console.error("Erreur lors de la recherche d'utilisateur:", error);
@@ -41,6 +46,7 @@ async function findUserById(id) {
     
     // Version simulation
     const db = await getDB();
+    if (!db) return null;
     return db.users.find(user => user.id === id);
   } catch (error) {
     console.error("Erreur lors de la recherche d'utilisateur par ID:", error);
@@ -58,6 +64,8 @@ async function createUser(userData) {
     
     // Générer un ID unique
     const db = await getDB();
+    if (!db) throw new Error("Base de données non disponible");
+    
     // COMMENTÉ POUR SIMULATION: En production, utilisez ceci
     /*
     const countUsers = await db.collection(COLLECTION_NAME).countDocuments();
@@ -78,6 +86,8 @@ async function createUser(userData) {
       password: hashedPassword,
       role: userData.role || 'user',
       department: userData.department,
+      fullName: userData.fullName,
+      email: userData.email,
       createdAt: new Date()
     };
     
@@ -105,6 +115,8 @@ async function updateUser(id, userData) {
     if (userData.username) updateData.username = userData.username;
     if (userData.department) updateData.department = userData.department;
     if (userData.role) updateData.role = userData.role;
+    if (userData.fullName) updateData.fullName = userData.fullName;
+    if (userData.email) updateData.email = userData.email;
     if (userData.password) {
       updateData.password = await bcrypt.hash(userData.password, 10);
     }
@@ -124,6 +136,8 @@ async function updateUser(id, userData) {
     
     // Version simulation
     const db = await getDB();
+    if (!db) throw new Error("Base de données non disponible");
+    
     const userIndex = db.users.findIndex(user => user.id === id);
     
     if (userIndex === -1) {
@@ -153,6 +167,8 @@ async function getAllUsers() {
     
     // Version simulation
     const db = await getDB();
+    if (!db || !db.users) return [];
+    
     const users = [...db.users];
     
     // Retirer les mots de passe
@@ -169,6 +185,7 @@ async function getAllUsers() {
 async function initializeDefaultUsers() {
   try {
     const db = await getDB();
+    if (!db) throw new Error("Base de données non disponible");
     
     // COMMENTÉ POUR SIMULATION: En production, utilisez ceci
     /*
@@ -200,6 +217,10 @@ async function initializeDefaultUsers() {
     */
     
     // Version simulation
+    if (!db.users) {
+      db.users = [];
+    }
+    
     if (db.users.length === 0) {
       db.users = [
         {
