@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AuthService } from "@/backend/services/AuthService";
 import { toast } from "@/components/ui/use-toast";
+import { RegisterUserData } from "@/data/models/User";
 
 const formSchema = z.object({
   username: z.string().min(3, "Le nom d'utilisateur doit contenir au moins 3 caractères"),
@@ -21,7 +22,7 @@ const formSchema = z.object({
 
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<RegisterUserData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       username: "",
@@ -32,7 +33,7 @@ const RegisterPage = () => {
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: RegisterUserData) => {
     try {
       await AuthService.register(values);
       toast({
