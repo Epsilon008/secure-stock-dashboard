@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,8 +16,24 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
+// Updated StockItem interface to include criticalLevel
+interface StockItem {
+  id: string;
+  name: string;
+  quantity: number;
+  criticalLevel?: number;
+}
+
+// Updated StockCategory interface
+interface StockCategory {
+  id: string;
+  name: string;
+  criticalLevel: number;
+  items: StockItem[];
+}
+
 // Mock data for stock categories and items
-const initialStockData = [
+const initialStockData: StockCategory[] = [
   {
     id: "cat1",
     name: "Ordinateurs",
@@ -230,41 +247,43 @@ const Stock: React.FC = () => {
               <DialogHeader>
                 <DialogTitle>Ajouter une nouvelle catégorie</DialogTitle>
               </DialogHeader>
-              <form onSubmit={newCategoryForm.handleSubmit(handleAddCategory)} className="space-y-4">
-                <FormField
-                  control={newCategoryForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nom de la catégorie</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={newCategoryForm.control}
-                  name="criticalLevel"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Niveau critique par défaut</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="1" {...field} onChange={e => field.onChange(Number(e.target.value))} />
-                      </FormControl>
-                      <FormDescription>
-                        Ce niveau sera utilisé comme valeur par défaut pour les nouveaux articles de cette catégorie.
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button type="button" variant="outline">Annuler</Button>
-                  </DialogClose>
-                  <Button type="submit">Ajouter</Button>
-                </DialogFooter>
-              </form>
+              <Form {...newCategoryForm}>
+                <form onSubmit={newCategoryForm.handleSubmit(handleAddCategory)} className="space-y-4">
+                  <FormField
+                    control={newCategoryForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nom de la catégorie</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={newCategoryForm.control}
+                    name="criticalLevel"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Niveau critique par défaut</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="1" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                        </FormControl>
+                        <FormDescription>
+                          Ce niveau sera utilisé comme valeur par défaut pour les nouveaux articles de cette catégorie.
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button type="button" variant="outline">Annuler</Button>
+                    </DialogClose>
+                    <Button type="submit">Ajouter</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
             </DialogContent>
           </Dialog>
 
@@ -437,13 +456,13 @@ const Stock: React.FC = () => {
 };
 
 // Function to get the total quantity of items in a category
-const getCategoryTotal = (category: typeof initialStockData[0]) => {
+const getCategoryTotal = (category: StockCategory) => {
   return category.items.reduce((total, item) => total + item.quantity, 0);
 };
 
 // Function to check if a category has any items below critical level
-const hasCriticalItems = (category: typeof initialStockData[0]) => {
-  return category.items.some(item => item.quantity <= category.criticalLevel);
+const hasCriticalItems = (category: StockCategory) => {
+  return category.items.some(item => item.quantity <= (item.criticalLevel || category.criticalLevel));
 };
 
 export default Stock;
