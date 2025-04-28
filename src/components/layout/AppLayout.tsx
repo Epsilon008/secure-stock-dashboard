@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
@@ -14,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const AppLayout = () => {
   const { user, logout } = useAuth();
@@ -43,6 +45,12 @@ const AppLayout = () => {
     logout();
   };
 
+  // Get initials for avatar
+  const getInitials = () => {
+    if (!user?.username) return 'U';
+    return user.username.charAt(0).toUpperCase();
+  };
+
   return (
     <div className="app-container">
       <Sidebar collapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
@@ -52,15 +60,19 @@ const AppLayout = () => {
           "ml-16": sidebarCollapsed,
         })}
       >
-        <div className="container mx-auto max-w-7xl">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="page-title">
+        <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b">
+          <div className="container mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
+            <h1 className="text-xl font-semibold">
               Bienvenue, {user?.username || "Utilisateur"}
             </h1>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <User className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="relative rounded-full">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {getInitials()}
+                    </AvatarFallback>
+                  </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end">
@@ -77,6 +89,8 @@ const AppLayout = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+        </header>
+        <div className="container mx-auto max-w-7xl p-4">
           <Outlet />
         </div>
       </main>
