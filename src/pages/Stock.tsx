@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,10 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/components/ui/use-toast";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 
 // Mock data for stock categories and items
 const initialStockData = [
@@ -55,23 +58,30 @@ const initialStockData = [
   },
 ];
 
-// Function to get the total quantity of items in a category
-const getCategoryTotal = (category: typeof initialStockData[0]) => {
-  return category.items.reduce((total, item) => total + item.quantity, 0);
-};
+// Schéma de validation pour la nouvelle catégorie
+const newCategorySchema = z.object({
+  name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
+  description: z.string().optional(),
+  criticalLevel: z.number().min(1, "Le niveau critique doit être supérieur à 0"),
+});
 
-// Function to check if a category has any items below critical level
-const hasCriticalItems = (category: typeof initialStockData[0]) => {
-  return category.items.some(item => item.quantity <= category.criticalLevel);
-};
+type NewCategory = z.infer<typeof newCategorySchema>;
 
 const Stock: React.FC = () => {
   const [stockData, setStockData] = useState(initialStockData);
   const [searchTerm, setSearchTerm] = useState("");
   const [newItemDialog, setNewItemDialog] = useState(false);
-  const [criticalLevelDialog, setCriticalLevelDialog] = useState<{ open: boolean; categoryId: string | null }>({
+  const [newCategoryDialog, setNewCategoryDialog] = useState(false);
+  const [itemCriticalDialog, setItemCriticalDialog] = useState<{ 
+    open: boolean; 
+    categoryId: string | null;
+    itemId: string | null;
+    currentLevel: number;
+  }>({
     open: false,
-    categoryId: null
+    categoryId: null,
+    itemId: null,
+    currentLevel: 5
   });
   
   // Form state for adding new item
@@ -81,8 +91,14 @@ const Stock: React.FC = () => {
     categoryId: ""
   });
 
-  // State for current critical level being edited
-  const [currentCriticalLevel, setCurrentCriticalLevel] = useState(5);
+  const newCategoryForm = useForm<NewCategory>({
+    resolver: zodResolver(newCategorySchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      criticalLevel: 5,
+    },
+  });
 
   const filteredStock = stockData.filter(category => {
     const categoryMatches = category.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -91,6 +107,67 @@ const Stock: React.FC = () => {
     );
     return categoryMatches || itemMatches;
   });
+
+  const handleAddCategory = (values: NewCategory) => {
+    const newCategory = {
+      id: `cat${Date.now()}`,
+      name: values.name,
+      criticalLevel: values.criticalLevel,
+      items: [],
+    };
+
+    setStockData([...stockData, newCategory]);
+    setNewCategoryDialog(false);
+    newCategoryForm.reset();
+    
+    toast({
+      title: "Catégorie ajoutée",
+      description: `${values.name} a été ajoutée avec succès.`,
+    });
+  };
+
+  const handleUpdateItemCriticalLevel = () => {
+    if (!itemCriticalDialog.categoryId || !itemCriticalDialog.itemId) return;
+
+    setStockData(stockData.map(category => {
+      if (category.id === itemCriticalDialog.categoryId) {
+        return {
+          ...category,
+          items: category.items.map(item => {
+            if (item.id === itemCriticalDialog.itemId) {
+              return {
+                ...item,
+                criticalLevel: itemCriticalDialog.currentLevel
+              };
+            }
+            return item;
+          })
+        };
+      }
+      return category;
+    }));
+
+    setItemCriticalDialog({ 
+      open: false, 
+      categoryId: null, 
+      itemId: null, 
+      currentLevel: 5 
+    });
+    
+    toast({
+      title: "Niveau critique mis à jour",
+      description: "Le niveau critique de l'article a été mis à jour avec succès.",
+    });
+  };
+
+  const openItemCriticalDialog = (categoryId: string, itemId: string, currentLevel: number = 5) => {
+    setItemCriticalDialog({ 
+      open: true, 
+      categoryId, 
+      itemId, 
+      currentLevel 
+    });
+  };
 
   const handleAddItem = () => {
     if (!newItem.name || !newItem.categoryId) {
@@ -128,32 +205,6 @@ const Stock: React.FC = () => {
     });
   };
 
-  const handleUpdateCriticalLevel = () => {
-    if (!criticalLevelDialog.categoryId) return;
-
-    setStockData(stockData.map(category => {
-      if (category.id === criticalLevelDialog.categoryId) {
-        return {
-          ...category,
-          criticalLevel: currentCriticalLevel
-        };
-      }
-      return category;
-    }));
-
-    setCriticalLevelDialog({ open: false, categoryId: null });
-    
-    toast({
-      title: "Niveau critique mis à jour",
-      description: "Le niveau critique a été mis à jour avec succès.",
-    });
-  };
-
-  const openCriticalLevelDialog = (categoryId: string, currentLevel: number) => {
-    setCurrentCriticalLevel(currentLevel);
-    setCriticalLevelDialog({ open: true, categoryId });
-  };
-
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -167,63 +218,114 @@ const Stock: React.FC = () => {
           />
         </div>
         
-        <Dialog open={newItemDialog} onOpenChange={setNewItemDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter un article
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Ajouter un nouvel article</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="itemName">Nom de l'article</Label>
-                <Input 
-                  id="itemName" 
-                  value={newItem.name}
-                  onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+        <div className="flex gap-2">
+          <Dialog open={newCategoryDialog} onOpenChange={setNewCategoryDialog}>
+            <DialogTrigger asChild>
+              <Button variant="secondary">
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter une catégorie
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Ajouter une nouvelle catégorie</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={newCategoryForm.handleSubmit(handleAddCategory)} className="space-y-4">
+                <FormField
+                  control={newCategoryForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nom de la catégorie</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="category">Catégorie</Label>
-                <Select 
-                  value={newItem.categoryId}
-                  onValueChange={(value) => setNewItem({ ...newItem, categoryId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une catégorie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {stockData.map(category => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Quantité</Label>
-                <Input 
-                  id="quantity" 
-                  type="number"
-                  min="1"
-                  value={newItem.quantity}
-                  onChange={(e) => setNewItem({ ...newItem, quantity: parseInt(e.target.value) || 1 })}
+                <FormField
+                  control={newCategoryForm.control}
+                  name="criticalLevel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Niveau critique par défaut</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="1" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                      </FormControl>
+                      <FormDescription>
+                        Ce niveau sera utilisé comme valeur par défaut pour les nouveaux articles de cette catégorie.
+                      </FormDescription>
+                    </FormItem>
+                  )}
                 />
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline">Annuler</Button>
+                  </DialogClose>
+                  <Button type="submit">Ajouter</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={newItemDialog} onOpenChange={setNewItemDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter un article
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Ajouter un nouvel article</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="itemName">Nom de l'article</Label>
+                  <Input 
+                    id="itemName" 
+                    value={newItem.name}
+                    onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="category">Catégorie</Label>
+                  <Select 
+                    value={newItem.categoryId}
+                    onValueChange={(value) => setNewItem({ ...newItem, categoryId: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner une catégorie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stockData.map(category => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Quantité</Label>
+                  <Input 
+                    id="quantity" 
+                    type="number"
+                    min="1"
+                    value={newItem.quantity}
+                    onChange={(e) => setNewItem({ ...newItem, quantity: parseInt(e.target.value) || 1 })}
+                  />
+                </div>
               </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Annuler</Button>
-              </DialogClose>
-              <Button onClick={handleAddItem}>Ajouter</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Annuler</Button>
+                </DialogClose>
+                <Button onClick={handleAddItem}>Ajouter</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {filteredStock.map(category => (
@@ -239,33 +341,17 @@ const Stock: React.FC = () => {
               <div className="text-sm text-muted-foreground">
                 Niveau critique: <span className="font-medium">{category.criticalLevel}</span>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => openCriticalLevelDialog(category.id, category.criticalLevel)}
-              >
-                <Edit className="h-3.5 w-3.5 mr-1" />
-                Modifier
-              </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-4">
-              <div className="flex justify-between mb-1 text-sm">
-                <span>Stock total: {getCategoryTotal(category)}</span>
-                <span>Niveau critique: {category.criticalLevel}</span>
-              </div>
-              <Progress 
-                value={(getCategoryTotal(category) / (category.criticalLevel * 3)) * 100} 
-                className="h-2"
-              />
-            </div>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Article</TableHead>
                   <TableHead>Quantité</TableHead>
+                  <TableHead>Niveau critique</TableHead>
                   <TableHead>Statut</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -273,12 +359,13 @@ const Stock: React.FC = () => {
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell>{item.quantity}</TableCell>
+                    <TableCell>{item.criticalLevel || category.criticalLevel}</TableCell>
                     <TableCell>
-                      {item.quantity <= category.criticalLevel ? (
+                      {item.quantity <= (item.criticalLevel || category.criticalLevel) ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                           Critique
                         </span>
-                      ) : item.quantity <= category.criticalLevel * 2 ? (
+                      ) : item.quantity <= (item.criticalLevel || category.criticalLevel) * 2 ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                           Attention
                         </span>
@@ -287,6 +374,16 @@ const Stock: React.FC = () => {
                           Normal
                         </span>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => openItemCriticalDialog(category.id, item.id, item.criticalLevel || category.criticalLevel)}
+                      >
+                        <Edit className="h-3.5 w-3.5 mr-1" />
+                        Niveau critique
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -297,9 +394,9 @@ const Stock: React.FC = () => {
       ))}
 
       <Dialog 
-        open={criticalLevelDialog.open} 
-        onOpenChange={(open) => setCriticalLevelDialog({ 
-          ...criticalLevelDialog, 
+        open={itemCriticalDialog.open} 
+        onOpenChange={(open) => setItemCriticalDialog({ 
+          ...itemCriticalDialog, 
           open 
         })}
       >
@@ -310,17 +407,20 @@ const Stock: React.FC = () => {
           <div className="py-6">
             <div className="space-y-4">
               <div>
-                <Label className="mb-2 block">Niveau critique: {currentCriticalLevel}</Label>
+                <Label className="mb-2 block">Niveau critique: {itemCriticalDialog.currentLevel}</Label>
                 <Slider
-                  value={[currentCriticalLevel]}
+                  value={[itemCriticalDialog.currentLevel]}
                   min={1}
                   max={30}
                   step={1}
-                  onValueChange={(values) => setCurrentCriticalLevel(values[0])}
+                  onValueChange={(values) => setItemCriticalDialog({
+                    ...itemCriticalDialog,
+                    currentLevel: values[0]
+                  })}
                 />
               </div>
               <p className="text-sm text-muted-foreground">
-                Ce niveau détermine quand vous recevrez une alerte pour le réapprovisionnement.
+                Ce niveau détermine quand vous recevrez une alerte pour le réapprovisionnement de cet article.
               </p>
             </div>
           </div>
@@ -328,12 +428,22 @@ const Stock: React.FC = () => {
             <DialogClose asChild>
               <Button variant="outline">Annuler</Button>
             </DialogClose>
-            <Button onClick={handleUpdateCriticalLevel}>Enregistrer</Button>
+            <Button onClick={handleUpdateItemCriticalLevel}>Enregistrer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
+};
+
+// Function to get the total quantity of items in a category
+const getCategoryTotal = (category: typeof initialStockData[0]) => {
+  return category.items.reduce((total, item) => total + item.quantity, 0);
+};
+
+// Function to check if a category has any items below critical level
+const hasCriticalItems = (category: typeof initialStockData[0]) => {
+  return category.items.some(item => item.quantity <= category.criticalLevel);
 };
 
 export default Stock;
