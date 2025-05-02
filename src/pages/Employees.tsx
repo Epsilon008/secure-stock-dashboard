@@ -1,5 +1,6 @@
 
 import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,55 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Plus, Edit, Trash2, Laptop, Smartphone, Monitor, Keyboard, X } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { EmployeeService, Employee, Equipment } from "@/services/EmployeeService";
 
-// Mock data for employees and equipment
-const initialEmployees = [
-  {
-    id: "1",
-    name: "Alice Martin",
-    department: "IT",
-    equipment: [
-      { id: "eq1", name: "Laptop Dell XPS", type: "laptop", assignedAt: "2025-03-10" },
-      { id: "eq2", name: "iPhone 15", type: "phone", assignedAt: "2025-01-22" }
-    ]
-  },
-  {
-    id: "2",
-    name: "Pierre Durand",
-    department: "Marketing",
-    equipment: [
-      { id: "eq3", name: "MacBook Pro", type: "laptop", assignedAt: "2024-12-15" }
-    ]
-  },
-  {
-    id: "3",
-    name: "Sophie Leroy",
-    department: "Finance",
-    equipment: [
-      { id: "eq4", name: "Dell Monitor 27\"", type: "monitor", assignedAt: "2025-02-18" },
-      { id: "eq5", name: "Logitech MX Keys", type: "keyboard", assignedAt: "2025-02-18" }
-    ]
-  },
-  {
-    id: "4",
-    name: "Michel Bernard",
-    department: "R&D",
-    equipment: [
-      { id: "eq6", name: "ThinkPad X1", type: "laptop", assignedAt: "2025-01-05" },
-      { id: "eq7", name: "Galaxy S23", type: "phone", assignedAt: "2025-01-05" }
-    ]
-  },
-];
-
-// Mock equipment available to assign
-const availableEquipment = [
-  { id: "av1", name: "MacBook Air", type: "laptop" },
-  { id: "av2", name: "iPhone 14", type: "phone" },
-  { id: "av3", name: "Dell UltraSharp 32\"", type: "monitor" },
-  { id: "av4", name: "Logitech MX Master", type: "mouse" },
-  { id: "av5", name: "HP EliteBook", type: "laptop" },
-];
-
+// Fonction d'aide pour obtenir l'icône d'équipement appropriée
 const getEquipmentIcon = (type: string) => {
   switch (type) {
     case "laptop":
@@ -72,10 +27,13 @@ const getEquipmentIcon = (type: string) => {
 };
 
 const Employees: React.FC = () => {
-  const [employees, setEmployees] = useState(initialEmployees);
+  // État local pour la recherche et les dialogues
   const [searchTerm, setSearchTerm] = useState("");
   const [newEmployeeDialog, setNewEmployeeDialog] = useState(false);
-  const [assignEquipmentDialog, setAssignEquipmentDialog] = useState<{ open: boolean; employeeId: string | null }>({
+  const [assignEquipmentDialog, setAssignEquipmentDialog] = useState<{ 
+    open: boolean; 
+    employeeId: string | null 
+  }>({
     open: false,
     employeeId: null
   });
@@ -91,21 +49,128 @@ const Employees: React.FC = () => {
     equipmentName: ""
   });
   
-  // Form state for adding new employee
+  // État pour les formulaires
   const [newEmployee, setNewEmployee] = useState({
     name: "",
     department: ""
   });
-
-  // Form state for assigning equipment
   const [selectedEquipment, setSelectedEquipment] = useState("");
 
+  // Access to the query client for cache invalidation
+  const queryClient = useQueryClient();
+
+  // Requête pour obtenir la liste des employés
+  const { data: employees = [], isLoading: isLoadingEmployees, error: employeesError } = useQuery({
+    queryKey: ['employees'],
+    queryFn: EmployeeService.getAllEmployees,
+  });
+
+  // Requête pour obtenir les équipements disponibles
+  const { data: availableEquipment = [], isLoading: isLoadingEquipment } = useQuery({
+    queryKey: ['availableEquipment'],
+    queryFn: EmployeeService.getAvailableEquipment,
+  });
+
+  // Mutation pour ajouter un employé
+  const addEmployeeMutation = useMutation({
+    mutationFn: EmployeeService.createEmployee,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      setNewEmployee({ name: "", department: "" });
+      setNewEmployeeDialog(false);
+      
+      toast({
+        title: "Employé ajouté",
+        description: `${newEmployee.name} a été ajouté avec succès.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: `Erreur lors de l'ajout de l'employé: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Mutation pour supprimer un employé
+  const deleteEmployeeMutation = useMutation({
+    mutationFn: EmployeeService.deleteEmployee,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      
+      toast({
+        title: "Employé supprimé",
+        description: "L'employé a été supprimé avec succès.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: `Erreur lors de la suppression: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Mutation pour attribuer un équipement
+  const assignEquipmentMutation = useMutation({
+    mutationFn: ({ employeeId, equipment }: { employeeId: string, equipment: Omit<Equipment, 'id' | 'assignedAt'> }) => 
+      EmployeeService.assignEquipment(employeeId, equipment),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      setSelectedEquipment("");
+      setAssignEquipmentDialog({ open: false, employeeId: null });
+      
+      toast({
+        title: "Équipement attribué",
+        description: `L'équipement a été attribué avec succès.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: `Erreur lors de l'attribution: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Mutation pour supprimer un équipement
+  const removeEquipmentMutation = useMutation({
+    mutationFn: ({ employeeId, equipmentId }: { employeeId: string, equipmentId: string }) => 
+      EmployeeService.removeEquipment(employeeId, equipmentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      setDeleteEquipmentDialog({
+        open: false,
+        employeeId: null,
+        equipmentId: null,
+        equipmentName: ""
+      });
+      
+      toast({
+        title: "Équipement supprimé",
+        description: `L'équipement a été retiré avec succès.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: `Erreur lors du retrait de l'équipement: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Filtrage des employés selon le terme de recherche
   const filteredEmployees = employees.filter(
     (employee) =>
       employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.department.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Gestionnaire pour l'ajout d'un employé
   const handleAddEmployee = () => {
     if (!newEmployee.name || !newEmployee.department) {
       toast({
@@ -116,26 +181,13 @@ const Employees: React.FC = () => {
       return;
     }
 
-    const newId = (employees.length + 1).toString();
-    setEmployees([
-      ...employees,
-      {
-        id: newId,
-        name: newEmployee.name,
-        department: newEmployee.department,
-        equipment: []
-      }
-    ]);
-
-    setNewEmployee({ name: "", department: "" });
-    setNewEmployeeDialog(false);
-    
-    toast({
-      title: "Employé ajouté",
-      description: `${newEmployee.name} a été ajouté avec succès.`,
+    addEmployeeMutation.mutate({
+      name: newEmployee.name,
+      department: newEmployee.department
     });
   };
 
+  // Gestionnaire pour l'attribution d'un équipement
   const handleAssignEquipment = () => {
     if (!selectedEquipment || !assignEquipmentDialog.employeeId) {
       toast({
@@ -150,67 +202,58 @@ const Employees: React.FC = () => {
     
     if (!equipment) return;
 
-    setEmployees(employees.map(employee => {
-      if (employee.id === assignEquipmentDialog.employeeId) {
-        return {
-          ...employee,
-          equipment: [
-            ...employee.equipment,
-            {
-              ...equipment,
-              assignedAt: new Date().toISOString().slice(0, 10)
-            }
-          ]
-        };
+    assignEquipmentMutation.mutate({
+      employeeId: assignEquipmentDialog.employeeId,
+      equipment: {
+        name: equipment.name,
+        type: equipment.type
       }
-      return employee;
-    }));
-
-    setSelectedEquipment("");
-    setAssignEquipmentDialog({ open: false, employeeId: null });
-    
-    toast({
-      title: "Équipement attribué",
-      description: `L'équipement a été attribué avec succès.`,
     });
   };
 
+  // Gestionnaire pour la suppression d'un équipement
   const handleDeleteEquipment = () => {
     if (!deleteEquipmentDialog.employeeId || !deleteEquipmentDialog.equipmentId) return;
     
-    setEmployees(employees.map(employee => {
-      if (employee.id === deleteEquipmentDialog.employeeId) {
-        return {
-          ...employee,
-          equipment: employee.equipment.filter(
-            eq => eq.id !== deleteEquipmentDialog.equipmentId
-          )
-        };
-      }
-      return employee;
-    }));
-    
-    setDeleteEquipmentDialog({
-      open: false,
-      employeeId: null,
-      equipmentId: null,
-      equipmentName: ""
-    });
-    
-    toast({
-      title: "Équipement supprimé",
-      description: `L'équipement a été retiré avec succès.`,
+    removeEquipmentMutation.mutate({
+      employeeId: deleteEquipmentDialog.employeeId,
+      equipmentId: deleteEquipmentDialog.equipmentId
     });
   };
 
+  // Gestionnaire pour la suppression d'un employé
   const handleDeleteEmployee = (id: string) => {
-    setEmployees(employees.filter(employee => employee.id !== id));
-    
-    toast({
-      title: "Employé supprimé",
-      description: "L'employé a été supprimé avec succès.",
-    });
+    deleteEmployeeMutation.mutate(id);
   };
+
+  // Afficher un indicateur de chargement pendant le chargement des données
+  if (isLoadingEmployees) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Chargement des données...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Afficher un message d'erreur en cas d'erreur
+  if (employeesError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-4">
+          <p className="text-destructive">Erreur de chargement des données</p>
+          <Button 
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['employees'] })}
+            variant="outline"
+          >
+            Réessayer
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -268,7 +311,12 @@ const Employees: React.FC = () => {
               <DialogClose asChild>
                 <Button variant="outline">Annuler</Button>
               </DialogClose>
-              <Button onClick={handleAddEmployee}>Ajouter</Button>
+              <Button 
+                onClick={handleAddEmployee} 
+                disabled={addEmployeeMutation.isPending}
+              >
+                {addEmployeeMutation.isPending ? "Ajout en cours..." : "Ajouter"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -321,6 +369,7 @@ const Employees: React.FC = () => {
                               })}
                               className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
                               aria-label={`Retirer ${item.name}`}
+                              disabled={removeEquipmentMutation.isPending}
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -352,6 +401,7 @@ const Employees: React.FC = () => {
                               <Select
                                 value={selectedEquipment}
                                 onValueChange={setSelectedEquipment}
+                                disabled={isLoadingEquipment}
                               >
                                 <SelectTrigger className="w-full mt-2">
                                   <SelectValue placeholder="Sélectionner un équipement" />
@@ -369,7 +419,12 @@ const Employees: React.FC = () => {
                               <DialogClose asChild>
                                 <Button variant="outline">Annuler</Button>
                               </DialogClose>
-                              <Button onClick={handleAssignEquipment}>Attribuer</Button>
+                              <Button 
+                                onClick={handleAssignEquipment}
+                                disabled={assignEquipmentMutation.isPending}
+                              >
+                                {assignEquipmentMutation.isPending ? "Attribution..." : "Attribuer"}
+                              </Button>
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
@@ -384,6 +439,7 @@ const Employees: React.FC = () => {
                           size="sm" 
                           className="px-2 text-destructive hover:text-destructive"
                           onClick={() => handleDeleteEmployee(employee.id)}
+                          disabled={deleteEmployeeMutation.isPending}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                           <span className="sr-only">Supprimer</span>
@@ -427,9 +483,10 @@ const Employees: React.FC = () => {
             <Button 
               variant="destructive" 
               onClick={handleDeleteEquipment}
+              disabled={removeEquipmentMutation.isPending}
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Retirer
+              {removeEquipmentMutation.isPending ? "Suppression..." : "Retirer"}
             </Button>
           </DialogFooter>
         </DialogContent>
