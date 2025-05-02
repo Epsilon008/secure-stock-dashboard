@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Plus, Edit, Trash2, Laptop, Smartphone, Monitor, Keyboard } from "lucide-react";
+import { Search, Plus, Edit, Trash2, Laptop, Smartphone, Monitor, Keyboard, X } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
 // Mock data for employees and equipment
@@ -78,6 +78,17 @@ const Employees: React.FC = () => {
   const [assignEquipmentDialog, setAssignEquipmentDialog] = useState<{ open: boolean; employeeId: string | null }>({
     open: false,
     employeeId: null
+  });
+  const [deleteEquipmentDialog, setDeleteEquipmentDialog] = useState<{ 
+    open: boolean; 
+    employeeId: string | null;
+    equipmentId: string | null;
+    equipmentName: string;
+  }>({
+    open: false,
+    employeeId: null,
+    equipmentId: null,
+    equipmentName: ""
   });
   
   // Form state for adding new employee
@@ -161,6 +172,34 @@ const Employees: React.FC = () => {
     toast({
       title: "Équipement attribué",
       description: `L'équipement a été attribué avec succès.`,
+    });
+  };
+
+  const handleDeleteEquipment = () => {
+    if (!deleteEquipmentDialog.employeeId || !deleteEquipmentDialog.equipmentId) return;
+    
+    setEmployees(employees.map(employee => {
+      if (employee.id === deleteEquipmentDialog.employeeId) {
+        return {
+          ...employee,
+          equipment: employee.equipment.filter(
+            eq => eq.id !== deleteEquipmentDialog.equipmentId
+          )
+        };
+      }
+      return employee;
+    }));
+    
+    setDeleteEquipmentDialog({
+      open: false,
+      employeeId: null,
+      equipmentId: null,
+      equipmentName: ""
+    });
+    
+    toast({
+      title: "Équipement supprimé",
+      description: `L'équipement a été retiré avec succès.`,
     });
   };
 
@@ -266,11 +305,25 @@ const Employees: React.FC = () => {
                         {employee.equipment.map((item) => (
                           <div
                             key={item.id}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs"
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs group relative"
                             title={`Attribué le ${item.assignedAt}`}
                           >
-                            {getEquipmentIcon(item.type)}
-                            {item.name}
+                            <div className="flex items-center gap-1">
+                              {getEquipmentIcon(item.type)}
+                              {item.name}
+                            </div>
+                            <button
+                              onClick={() => setDeleteEquipmentDialog({
+                                open: true,
+                                employeeId: employee.id,
+                                equipmentId: item.id,
+                                equipmentName: item.name
+                              })}
+                              className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
+                              aria-label={`Retirer ${item.name}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
                           </div>
                         ))}
                         {employee.equipment.length === 0 && (
@@ -344,6 +397,43 @@ const Employees: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialog de confirmation pour supprimer un équipement */}
+      <Dialog 
+        open={deleteEquipmentDialog.open} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteEquipmentDialog({
+              open: false,
+              employeeId: null,
+              equipmentId: null,
+              equipmentName: ""
+            });
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir retirer l'équipement "{deleteEquipmentDialog.equipmentName}" ?
+              Cette action ne peut pas être annulée.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Annuler</Button>
+            </DialogClose>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteEquipment}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Retirer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
